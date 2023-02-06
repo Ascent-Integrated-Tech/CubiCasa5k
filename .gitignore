@@ -10,3 +10,12 @@ __pycache__/
 [._]s[a-rt-v][a-z]
 [._]ss[a-gi-z]
 [._]sw[a-p]
+
+#ignore these filetypes when we push
+*.json
+*.npy
+*.geojson
+*.h5
+*.zip
+*.txt
+*.png
