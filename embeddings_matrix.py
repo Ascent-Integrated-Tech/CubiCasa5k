@@ -39,12 +39,14 @@ split = [21, 12, 11]
 #model.cuda()
 print("Model loaded.")
 
-with open('/home/alishakhan/notebooks/CubiCasa5k/data/test_modified_1.pkl', 'rb') as f:
-    test = pickle.load(f)
+# with open('/home/alishakhan/notebooks/CubiCasa5k/data/test_modified_1.pkl', 'rb') as f:
+#     test = pickle.load(f)
 
-with open('/home/alishakhan/notebooks/CubiCasa5k/data/val_modified_1.pkl', 'rb') as f:
-    val = pickle.load(f)
+# with open('/home/alishakhan/notebooks/CubiCasa5k/data/val_modified_1.pkl', 'rb') as f:
+#     val = pickle.load(f)
 
+with open ("/home/alishakhan/notebooks/CubiCasa5k/data/train_modified_1.pkl", 'rb') as f:
+    train=pickle.load(f)
 def isolate_class(rooms, CLASS: int):
     template = np.zeros_like(rooms)
     rows, cols = np.where(rooms == CLASS)
@@ -113,7 +115,7 @@ def get_edges(img, room_contours, door_contours):
 #check that floorplan doesn't contain undefined
 embeddings = None
 Y= None
-for index, floorplan in test.items():
+for index, floorplan in train.items():
     if 11 not in set(floorplan.flatten()):
         icons = normal_set[index]['label'][1].numpy()
         rows, column = np.where(icons == 2)
@@ -178,70 +180,70 @@ for index, floorplan in test.items():
             Y=np.concatenate(([Y, X]), axis=0)
 
 
-data_file = 'val.txt'
-normal_set = FloorplanSVG(data_folder, data_file, format='txt', original_size=True)
-data_loader = DataLoader(normal_set, batch_size=1, num_workers=0)
-data_iter = iter(data_loader)
-# Setup Model
-model = get_model('hg_furukawa_original', 51)
+# data_file = 'val.txt'
+# normal_set = FloorplanSVG(data_folder, data_file, format='txt', original_size=True)
+# data_loader = DataLoader(normal_set, batch_size=1, num_workers=0)
+# data_iter = iter(data_loader)
+# # Setup Model
+# model = get_model('hg_furukawa_original', 51)
 
-for index, floorplan in val.items():
-    if 11 not in set(floorplan.flatten()):
-        icons = normal_set[index]['label'][1].numpy()
-        rows, column = np.where(icons == 2)
-        floorplan[rows, column] = 12
-        rooms, doors, nodes = vis_nodes(floorplan, good)
-        rc = []
-        for k in rooms.keys():
-            if k != 12:
-                rc += rooms[k]
+# for index, floorplan in val.items():
+#     if 11 not in set(floorplan.flatten()):
+#         icons = normal_set[index]['label'][1].numpy()
+#         rows, column = np.where(icons == 2)
+#         floorplan[rows, column] = 12
+#         rooms, doors, nodes = vis_nodes(floorplan, good)
+#         rc = []
+#         for k in rooms.keys():
+#             if k != 12:
+#                 rc += rooms[k]
 
-        positions = []
-        for k in rooms.keys():
-            if k != 12:
-                for cont in rooms[k]:
-                    positions.append(np.array(cont).squeeze(1).mean(0).tolist())
+#         positions = []
+#         for k in rooms.keys():
+#             if k != 12:
+#                 for cont in rooms[k]:
+#                     positions.append(np.array(cont).squeeze(1).mean(0).tolist())
 
-        pos_attrs = {}
-        for i, n in enumerate(positions):
-            pos_attrs[i] = [n[0], -n[1]]
-        try:
-            idx, vis = get_edges(floorplan, rc, doors)
-        except:
-            get_edges(floorplan, rc, doors)==-1
-            continue
+#         pos_attrs = {}
+#         for i, n in enumerate(positions):
+#             pos_attrs[i] = [n[0], -n[1]]
+#         try:
+#             idx, vis = get_edges(floorplan, rc, doors)
+#         except:
+#             get_edges(floorplan, rc, doors)==-1
+#             continue
 
-        if not idx:
-            continue
+#         if not idx:
+#             continue
 
-        nodes_lst = []
-        for k in rooms.keys():
-            if k != 12:
-                nodes_lst += ([k] * len(rooms[k]))
-        nodes_lst_updated = []
-        for i in range(len(nodes_lst)):
-            edges = set(np.array(idx).flatten())
-            if i in edges:
-                nodes_lst_updated.append(nodes_lst[i])
-        nodes_lst = nodes_lst_updated
+#         nodes_lst = []
+#         for k in rooms.keys():
+#             if k != 12:
+#                 nodes_lst += ([k] * len(rooms[k]))
+#         nodes_lst_updated = []
+#         for i in range(len(nodes_lst)):
+#             edges = set(np.array(idx).flatten())
+#             if i in edges:
+#                 nodes_lst_updated.append(nodes_lst[i])
+#         nodes_lst = nodes_lst_updated
 
-        node_attrs = {}
-        for i, n in enumerate(nodes_lst):
-            node_attrs[i] = room_classes[n]
+#         node_attrs = {}
+#         for i, n in enumerate(nodes_lst):
+#             node_attrs[i] = room_classes[n]
 
-        G = nx.Graph(idx)
-        A = nx.adjacency_matrix(G)
-        X = F.one_hot(torch.tensor(nodes_lst), 11).numpy()
-        try:
-            H = A @ X
-        except:
-            print('ERROR')
-            print(A.shape)
-            print(X.shape)
-            break
+#         G = nx.Graph(idx)
+#         A = nx.adjacency_matrix(G)
+#         X = F.one_hot(torch.tensor(nodes_lst), 11).numpy()
+#         try:
+#             H = A @ X
+#         except:
+#             print('ERROR')
+#             print(A.shape)
+#             print(X.shape)
+#             break
         
-        embeddings = np.concatenate(([embeddings , H ]), axis=0)
-        Y=np.concatenate(([Y, X]), axis=0)
+#         embeddings = np.concatenate(([embeddings , H ]), axis=0)
+#         Y=np.concatenate(([Y, X]), axis=0)
 
-np.save("/home/alishakhan/notebooks/CubiCasa5k/outputs/embeddings.npy", embeddings)
-np.save("/home/alishakhan/notebooks/CubiCasa5k/outputs/Y.npy", Y)
+np.save("/home/alishakhan/notebooks/CubiCasa5k/outputs/embeddings_train.npy", embeddings)
+np.save("/home/alishakhan/notebooks/CubiCasa5k/outputs/Y_train.npy", Y)
