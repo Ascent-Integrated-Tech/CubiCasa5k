@@ -45,8 +45,8 @@ print("Model loaded.")
 # with open('/home/alishakhan/notebooks/CubiCasa5k/data/val_modified_1.pkl', 'rb') as f:
 #     val = pickle.load(f)
 
-with open ("/home/alishakhan/notebooks/CubiCasa5k/data/train_modified_1.pkl", 'rb') as f:
-    train=pickle.load(f)
+with open ("/home/alishakhan/notebooks/CubiCasa5k/data/test_modified_1.pkl", 'rb') as f:
+    test=pickle.load(f)
 def isolate_class(rooms, CLASS: int):
     template = np.zeros_like(rooms)
     rows, cols = np.where(rooms == CLASS)
@@ -115,17 +115,22 @@ def get_edges(img, room_contours, door_contours):
 #check that floorplan doesn't contain undefined
 embeddings = None
 Y= None
-for index, floorplan in train.items():
+for index, floorplan in test.items():
     if 11 not in set(floorplan.flatten()):
         icons = normal_set[index]['label'][1].numpy()
         rows, column = np.where(icons == 2)
         floorplan[rows, column] = 12
         rooms, doors, nodes = vis_nodes(floorplan, good)
         rc = []
+        attributes={"type":[], "areas":[]}
+        
         for k in rooms.keys():
             if k != 12:
                 rc += rooms[k]
-
+                attributes['type'] += ([k] * len(rooms[k]))
+                for r in rooms[k]:
+                    r=np.array(r).squeeze(1)
+                    attributes['areas'].append(Polygon(r).area)
         positions = []
         for k in rooms.keys():
             if k != 12:
@@ -144,24 +149,24 @@ for index, floorplan in train.items():
         if not idx:
             continue
 
-        nodes_lst = []
-        for k in rooms.keys():
-            if k != 12:
-                nodes_lst += ([k] * len(rooms[k]))
+        #nodes_lst = []
+        #for k in rooms.keys():
+            #if k != 12:
+                #nodes_lst += ([k] * len(rooms[k]))
         nodes_lst_updated = []
-        for i in range(len(nodes_lst)):
+        for i in range(len(attributes["type"])):
             edges = set(np.array(idx).flatten())
             if i in edges:
-                nodes_lst_updated.append(nodes_lst[i])
-        nodes_lst = nodes_lst_updated
+                nodes_lst_updated.append(attributes["type"][i])
+        #nodes_lst = nodes_lst_updated
 
         node_attrs = {}
-        for i, n in enumerate(nodes_lst):
+        for i, n in enumerate(nodes_lst_updated):
             node_attrs[i] = room_classes[n]
 
         G = nx.Graph(idx)
         A = nx.adjacency_matrix(G)
-        X = F.one_hot(torch.tensor(nodes_lst), 11).numpy()
+        X = F.one_hot(torch.tensor(nodes_lst_updated), 11).numpy()
         try:
             H = A @ X
         except:
@@ -245,5 +250,5 @@ for index, floorplan in train.items():
 #         embeddings = np.concatenate(([embeddings , H ]), axis=0)
 #         Y=np.concatenate(([Y, X]), axis=0)
 
-np.save("/home/alishakhan/notebooks/CubiCasa5k/outputs/embeddings_train.npy", embeddings)
-np.save("/home/alishakhan/notebooks/CubiCasa5k/outputs/Y_train.npy", Y)
+np.save("/home/alishakhan/notebooks/CubiCasa5k/outputs/embeddings_test_trial.npy", embeddings)
+np.save("/home/alishakhan/notebooks/CubiCasa5k/outputs/Y_test_trial.npy", Y)
